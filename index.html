@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>First Letters — Record &amp; Compare (Prototype)</title>
+<style>
+  :root{
+    --green:#2e7d32;
+    --green-dark:#1b5e20;
+    --green-light:#e8f5e9;
+    --green-mid:#a5d6a7;
+    --text:#1b3a1b;
+  }
+  *{box-sizing:border-box;}
+  body{
+    margin:0;
+    font-family:'Segoe UI', Tahoma, Arial, sans-serif;
+    background:var(--green-light);
+    color:var(--text);
+    display:flex;
+    flex-direction:column;
+    align-items:center;
+    min-height:100vh;
+    padding:16px;
+  }
+  header{
+    text-align:center;
+    margin-bottom:12px;
+  }
+  header h1{
+    color:var(--green-dark);
+    font-size:1.5rem;
+    margin:0 0 4px 0;
+  }
+  header p{
+    margin:0;
+    color:var(--green);
+    font-size:1rem;
+  }
+  .card{
+    background:#fff;
+    border:3px solid var(--green-mid);
+    border-radius:20px;
+    padding:24px 20px;
+    max-width:420px;
+    width:100%;
+    text-align:center;
+    box-shadow:0 4px 14px rgba(27,94,32,.12);
+  }
+  .letter{
+    font-size:6rem;
+    line-height:1.1;
+    color:var(--green-dark);
+    font-family:'Traditional Arabic','Amiri','Scheherazade New',serif;
+  }
+  .letter-name{
+    font-size:1.3rem;
+    font-weight:bold;
+    color:var(--green);
+    margin-top:4px;
+  }
+  .words{
+    display:flex;
+    justify-content:center;
+    gap:14px;
+    margin:14px 0 6px 0;
+    flex-wrap:wrap;
+  }
+  .word{
+    background:var(--green-light);
+    border:2px solid var(--green-mid);
+    border-radius:12px;
+    padding:8px 14px;
+    font-size:1.4rem;
+    direction:rtl;
+  }
+  .btn{
+    display:block;
+    width:100%;
+    margin:10px 0;
+    padding:16px;
+    font-size:1.25rem;
+    font-weight:bold;
+    border:none;
+    border-radius:14px;
+    cursor:pointer;
+    background:var(--green);
+    color:#fff;
+    transition:background .15s ease, transform .1s ease;
+  }
+  .btn:hover{background:var(--green-dark);}
+  .btn:active{transform:scale(.97);}
+  .btn.secondary{
+    background:#fff;
+    color:var(--green-dark);
+    border:3px solid var(--green);
+  }
+  .btn.secondary:hover{background:var(--green-light);}
+  .btn:disabled{
+    background:#c8e6c9;
+    color:#6b8f6b;
+    cursor:not-allowed;
+    border-color:#c8e6c9;
+  }
+  .btn.recording{
+    background:#c62828;
+  }
+  .status{
+    min-height:1.4em;
+    font-size:1rem;
+    margin:8px 0;
+    color:var(--green-dark);
+  }
+  .encourage{
+    display:none;
+    background:var(--green-light);
+    border:2px dashed var(--green);
+    border-radius:12px;
+    padding:12px;
+    margin-top:12px;
+    font-size:1.15rem;
+    font-weight:bold;
+    color:var(--green-dark);
+  }
+  .compare-row{
+    display:flex;
+    gap:10px;
+    margin-top:10px;
+  }
+  .compare-row .btn{margin:0; font-size:1.05rem; padding:12px 8px;}
+  .note{
+    max-width:420px;
+    width:100%;
+    margin-top:14px;
+    background:#fff;
+    border:2px solid var(--green-mid);
+    border-radius:12px;
+    padding:12px 14px;
+    font-size:.9rem;
+    color:#336033;
+  }
+  .note b{color:var(--green-dark);}
+  .placeholder-tag{
+    display:inline-block;
+    background:#fff8e1;
+    border:1px solid #f0c36d;
+    color:#7a5a00;
+    border-radius:8px;
+    padding:2px 8px;
+    font-size:.8rem;
+    margin-top:6px;
+  }
+  audio{display:none;}
+</style>
+</head>
+<body>
+
+<header>
+  <h1>First Letters &mdash; Listen, Record, Compare</h1>
+  <p>اسمع &bull; سجّل &bull; قارن</p>
+</header>
+
+<div class="card">
+  <div class="letter" dir="rtl">ا</div>
+  <div class="letter-name">Alif &mdash; ألف</div>
+
+  <div class="words">
+    <div class="word">الولد</div>
+    <div class="word">باب</div>
+    <div class="word">سما</div>
+  </div>
+
+  <button id="listenBtn" class="btn">🔊 Listen &mdash; اسمع</button>
+  <div class="placeholder-tag">Placeholder voice (browser speech) — صوت مؤقت، سيتم استبداله بتسجيل حقيقي</div>
+
+  <button id="recordBtn" class="btn secondary">🎙️ Record &mdash; سجّل صوتك</button>
+
+  <div id="status" class="status"></div>
+
+  <div class="compare-row">
+    <button id="playModelBtn" class="btn secondary" disabled>▶️ Model &mdash; النموذج</button>
+    <button id="playMineBtn" class="btn secondary" disabled>▶️ Me &mdash; أنا</button>
+  </div>
+
+  <div id="encourage" class="encourage"></div>
+</div>
+
+<div class="note">
+  🔒 <b>Private:</b> your recording stays only in this page's memory. Nothing is uploaded, saved, or sent anywhere. It disappears when you close the page.<br>
+  <span dir="rtl">🔒 <b>خصوصية:</b> تسجيلك يبقى في ذاكرة الصفحة فقط، لا يُرفع ولا يُحفظ ولا يُرسل لأي مكان، ويختفي عند إغلاق الصفحة.</span><br><br>
+  🎙️ <b>Microphone:</b> the browser asks for mic permission. Recording needs a secure page (<b>https</b> or <b>localhost</b>).<br>
+  <span dir="rtl">🎙️ <b>الميكروفون:</b> المتصفح سيطلب إذن الميكروفون. التسجيل يحتاج صفحة آمنة (https أو localhost).</span>
+</div>
+
+<script>
+(function(){
+  "use strict";
+
+  /* ------------------------------------------------------------------
+     MODEL AUDIO HOOK
+     Right now there is no real recording, so the model voice is the
+     browser's built-in speech synthesis (Arabic voice when available).
+     To use real audio later: put files next to this page (e.g.
+     audio/alif.mp3) and set MODEL_AUDIO_URL below — the page will use
+     the file instead of speech synthesis automatically.
+  ------------------------------------------------------------------ */
+  var MODEL_AUDIO_URL = null; // e.g. "audio/alif.mp3"
+
+  var MODEL_TEXT = "ألف. الولد. باب. سما.";
+
+  var listenBtn   = document.getElementById('listenBtn');
+  var recordBtn   = document.getElementById('recordBtn');
+  var playModelBtn= document.getElementById('playModelBtn');
+  var playMineBtn = document.getElementById('playMineBtn');
+  var statusEl    = document.getElementById('status');
+  var encourageEl = document.getElementById('encourage');
+
+  var encouragement = [
+    "Great try! Listen again and compare. — محاولة جميلة! اسمع تاني وقارن.",
+    "Well done! Every try makes you better. — أحسنت! كل محاولة تخليك أحسن.",
+    "Nice! Record again if you like. — جميل! سجّل تاني لو حابب."
+  ];
+  var encourageIdx = 0;
+
+  function setStatus(msg){ statusEl.textContent = msg; }
+
+  /* ---------- Model voice: file if provided, else speech synthesis ---------- */
+  var modelAudioEl = null;
+  if (MODEL_AUDIO_URL) {
+    modelAudioEl = new Audio(MODEL_AUDIO_URL);
+  }
+
+  function pickArabicVoice(){
+    if (!('speechSynthesis' in window)) return null;
+    var voices = window.speechSynthesis.getVoices();
+    var i;
+    for (i=0;i<voices.length;i++){
+      if (voices[i].lang && voices[i].lang.toLowerCase().indexOf('ar')===0) return voices[i];
+    }
+    return null;
+  }
+  if (window.speechSynthesis) {
+    window.speechSynthesis.onvoiceschanged = function(){ pickArabicVoice(); };
+  }
+
+  function playModel(done){
+    if (modelAudioEl) {
+      modelAudioEl.currentTime = 0;
+      modelAudioEl.onended = function(){ if(done) done(); };
+      modelAudioEl.play().catch(function(){ setStatus("Couldn't play model audio."); if(done) done(); });
+      return;
+    }
+    if (!window.speechSynthesis) {
+      setStatus("Speech synthesis not available in this browser. — النطق غير متاح في هذا المتصفح.");
+      if(done) done();
+      return;
+    }
+    window.speechSynthesis.cancel();
+    var u = new SpeechSynthesisUtterance(MODEL_TEXT);
+    var v = pickArabicVoice();
+    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'ar-SA'; }
+    u.rate = 0.8;
+    u.onend = function(){ if(done) done(); };
+    u.onerror = function(){ if(done) done(); };
+    window.speechSynthesis.speak(u);
+  }
+
+  listenBtn.addEventListener('click', function(){
+    setStatus("Playing model… — بيشتغل النموذج…");
+    playModel(function(){ setStatus(""); });
+  });
+  playModelBtn.addEventListener('click', function(){
+    setStatus("Playing model… — بيشتغل النموذج…");
+    playModel(function(){ setStatus(""); });
+  });
+
+  /* ---------- Recording (MediaRecorder, memory only) ---------- */
+  var mediaRecorder = null;
+  var recordedChunks = [];
+  var recordedURL = null;   // blob: URL living in this page's memory only
+  var recordedBlob = null;
+  var recording = false;
+  var micStream = null;
+
+  function stopMic(){
+    if (micStream) {
+      micStream.getTracks().forEach(function(t){ t.stop(); });
+      micStream = null;
+    }
+  }
+
+  function setRecordingUI(on){
+    recording = on;
+    if (on) {
+      recordBtn.textContent = "⏹️ Stop — وقّف";
+      recordBtn.classList.add('recording');
+      setStatus("Recording… say the letter and the words — بيسجّل… قول الحرف والكلمات");
+    } else {
+      recordBtn.textContent = "🎙️ Record — سجّل صوتك";
+      recordBtn.classList.remove('recording');
+      setStatus("");
+    }
+  }
+
+  function startRecording(){
+    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
+      setStatus("Recording not supported here. Needs https or localhost. — التسجيل غير مدعوم هنا، يحتاج https أو localhost.");
+      return;
+    }
+    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
+      micStream = stream;
+      recordedChunks = [];
+      var options = {};
+      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm')) {
+        options.mimeType = 'audio/webm';
+      }
+      try {
+        mediaRecorder = new MediaRecorder(stream, options);
+      } catch(e) {
+        try { mediaRecorder = new MediaRecorder(stream); }
+        catch(e2){ setStatus("Recording failed to start."); stopMic(); return; }
+      }
+      mediaRecorder.ondataavailable = function(ev){
+        if (ev.data && ev.data.size > 0) recordedChunks.push(ev.data);
+      };
+      mediaRecorder.onstop = function(){
+        stopMic();
+        if (recordedURL) { URL.revokeObjectURL(recordedURL); recordedURL = null; }
+        recordedBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
+        recordedURL = URL.createObjectURL(recordedBlob); // memory only, never uploaded
+        playMineBtn.disabled = false;
+        playModelBtn.disabled = false;
+        encourageEl.textContent = encouragement[encourageIdx % encouragement.length];
+        encourageIdx++;
+        encourageEl.style.display = 'block';
+      };
+      mediaRecorder.start();
+      setRecordingUI(true);
+    }).catch(function(err){
+      if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
+        setStatus("Mic permission denied. Allow the microphone and try again. — إذن الميكروفون مرفوض، اسمح بالميكروفون وحاول تاني.");
+      } else {
+        setStatus("Couldn't access the microphone. — تعذّر الوصول للميكروفون.");
+      }
+    });
+  }
+
+  function stopRecording(){
+    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
+      mediaRecorder.stop();
+    }
+    setRecordingUI(false);
+  }
+
+  recordBtn.addEventListener('click', function(){
+    if (recording) { stopRecording(); } else { startRecording(); }
+  });
+
+  playMineBtn.addEventListener('click', function(){
+    if (!recordedURL) return;
+    var a = new Audio(recordedURL);
+    setStatus("Playing your recording… — بيشتغل تسجيلك…");
+    a.onended = function(){ setStatus(""); };
+    a.play().catch(function(){ setStatus("Couldn't play your recording."); });
+  });
+
+  window.addEventListener('beforeunload', function(){
+    stopMic();
+    if (recordedURL) URL.revokeObjectURL(recordedURL);
+    if ('speechSynthesis' in window) window.speechSynthesis.cancel();
+  });
+})();
+</script>
+</body>
+</html>
