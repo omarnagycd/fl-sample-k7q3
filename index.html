@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>First Letters — Record &amp; Compare (Prototype)</title>
+<title>First Letters — Listen &amp; Compare (Prototype)</title>
 <style>
   :root{
     --green:#2e7d32;
@@ -112,8 +112,18 @@
     margin:8px 0;
     color:var(--green-dark);
   }
+  .howto{
+    background:#fffde7;
+    border:2px solid #f0c36d;
+    border-radius:14px;
+    padding:12px 14px;
+    margin-top:14px;
+    font-size:1.05rem;
+  }
+  .howto-title{font-weight:bold;color:var(--green-dark);font-size:1.15rem;}
+  .howto p{margin:6px 0 0 0;}
   .encourage{
-    display:none;
+    display:block;
     background:var(--green-light);
     border:2px dashed var(--green);
     border-radius:12px;
@@ -157,8 +167,8 @@
 <body>
 
 <header>
-  <h1>First Letters &mdash; Listen, Record, Compare</h1>
-  <p>اسمع &bull; سجّل &bull; قارن</p>
+  <h1>First Letters &mdash; Listen and Compare</h1>
+  <p>اسمع &bull; قارن</p>
 </header>
 
 <div class="card">
@@ -174,23 +184,20 @@
   <button id="listenBtn" class="btn">🔊 Listen &mdash; اسمع</button>
   <div class="placeholder-tag">Placeholder voice (browser speech) — صوت مؤقت، سيتم استبداله بتسجيل حقيقي</div>
 
-  <button id="recordBtn" class="btn secondary">🎙️ Record &mdash; سجّل صوتك</button>
-
   <div id="status" class="status"></div>
 
-  <div class="compare-row">
-    <button id="playModelBtn" class="btn secondary" disabled>▶️ Model &mdash; النموذج</button>
-    <button id="playMineBtn" class="btn secondary" disabled>▶️ Me &mdash; أنا</button>
+  <div class="howto">
+    <div class="howto-title">🎧 Your turn! — دورك!</div>
+    <p>Record yourself on another device (a phone or any recorder app), then listen to both and compare.</p>
+    <p dir="rtl">سجّل صوتك على جهاز تاني (موبايل أو أي تطبيق تسجيل)، وبعدين اسمع الاتنين وقارن.</p>
   </div>
 
-  <div id="encourage" class="encourage"></div>
+  <div class="encourage">Every try makes you better! — كل محاولة تخليك أحسن!</div>
 </div>
 
 <div class="note">
-  🔒 <b>Private:</b> your recording stays only in this page's memory. Nothing is uploaded, saved, or sent anywhere. It disappears when you close the page.<br>
-  <span dir="rtl">🔒 <b>خصوصية:</b> تسجيلك يبقى في ذاكرة الصفحة فقط، لا يُرفع ولا يُحفظ ولا يُرسل لأي مكان، ويختفي عند إغلاق الصفحة.</span><br><br>
-  🎙️ <b>Microphone:</b> the browser asks for mic permission. Recording needs a secure page (<b>https</b> or <b>localhost</b>).<br>
-  <span dir="rtl">🎙️ <b>الميكروفون:</b> المتصفح سيطلب إذن الميكروفون. التسجيل يحتاج صفحة آمنة (https أو localhost).</span>
+  🔒 <b>Private:</b> this page only plays the model voice. It does not use the microphone, record, save, or upload anything.<br>
+  <span dir="rtl">🔒 <b>خصوصية:</b> الصفحة بتشغّل صوت النموذج فقط. لا تستخدم الميكروفون ولا تسجّل ولا تحفظ ولا ترفع أي شيء.</span>
 </div>
 
 <script>
@@ -199,7 +206,7 @@
 
   /* ------------------------------------------------------------------
      MODEL AUDIO HOOK
-     Right now there is no real recording, so the model voice is the
+     Until a real recording is added, the model voice is the
      browser's built-in speech synthesis (Arabic voice when available).
      To use real audio later: put files next to this page (e.g.
      audio/alif.mp3) and set MODEL_AUDIO_URL below — the page will use
@@ -210,18 +217,7 @@
   var MODEL_TEXT = "ألف. الولد. باب. سما.";
 
   var listenBtn   = document.getElementById('listenBtn');
-  var recordBtn   = document.getElementById('recordBtn');
-  var playModelBtn= document.getElementById('playModelBtn');
-  var playMineBtn = document.getElementById('playMineBtn');
   var statusEl    = document.getElementById('status');
-  var encourageEl = document.getElementById('encourage');
-
-  var encouragement = [
-    "Great try! Listen again and compare. — محاولة جميلة! اسمع تاني وقارن.",
-    "Well done! Every try makes you better. — أحسنت! كل محاولة تخليك أحسن.",
-    "Nice! Record again if you like. — جميل! سجّل تاني لو حابب."
-  ];
-  var encourageIdx = 0;
 
   function setStatus(msg){ statusEl.textContent = msg; }
 
@@ -270,104 +266,7 @@
     setStatus("Playing model… — بيشتغل النموذج…");
     playModel(function(){ setStatus(""); });
   });
-  playModelBtn.addEventListener('click', function(){
-    setStatus("Playing model… — بيشتغل النموذج…");
-    playModel(function(){ setStatus(""); });
-  });
-
-  /* ---------- Recording (MediaRecorder, memory only) ---------- */
-  var mediaRecorder = null;
-  var recordedChunks = [];
-  var recordedURL = null;   // blob: URL living in this page's memory only
-  var recordedBlob = null;
-  var recording = false;
-  var micStream = null;
-
-  function stopMic(){
-    if (micStream) {
-      micStream.getTracks().forEach(function(t){ t.stop(); });
-      micStream = null;
-    }
-  }
-
-  function setRecordingUI(on){
-    recording = on;
-    if (on) {
-      recordBtn.textContent = "⏹️ Stop — وقّف";
-      recordBtn.classList.add('recording');
-      setStatus("Recording… say the letter and the words — بيسجّل… قول الحرف والكلمات");
-    } else {
-      recordBtn.textContent = "🎙️ Record — سجّل صوتك";
-      recordBtn.classList.remove('recording');
-      setStatus("");
-    }
-  }
-
-  function startRecording(){
-    if (!navigator.mediaDevices || !navigator.mediaDevices.getUserMedia || typeof MediaRecorder === 'undefined') {
-      setStatus("Recording not supported here. Needs https or localhost. — التسجيل غير مدعوم هنا، يحتاج https أو localhost.");
-      return;
-    }
-    navigator.mediaDevices.getUserMedia({ audio: true }).then(function(stream){
-      micStream = stream;
-      recordedChunks = [];
-      var options = {};
-      if (MediaRecorder.isTypeSupported && MediaRecorder.isTypeSupported('audio/webm')) {
-        options.mimeType = 'audio/webm';
-      }
-      try {
-        mediaRecorder = new MediaRecorder(stream, options);
-      } catch(e) {
-        try { mediaRecorder = new MediaRecorder(stream); }
-        catch(e2){ setStatus("Recording failed to start."); stopMic(); return; }
-      }
-      mediaRecorder.ondataavailable = function(ev){
-        if (ev.data && ev.data.size > 0) recordedChunks.push(ev.data);
-      };
-      mediaRecorder.onstop = function(){
-        stopMic();
-        if (recordedURL) { URL.revokeObjectURL(recordedURL); recordedURL = null; }
-        recordedBlob = new Blob(recordedChunks, { type: mediaRecorder.mimeType || 'audio/webm' });
-        recordedURL = URL.createObjectURL(recordedBlob); // memory only, never uploaded
-        playMineBtn.disabled = false;
-        playModelBtn.disabled = false;
-        encourageEl.textContent = encouragement[encourageIdx % encouragement.length];
-        encourageIdx++;
-        encourageEl.style.display = 'block';
-      };
-      mediaRecorder.start();
-      setRecordingUI(true);
-    }).catch(function(err){
-      if (err && (err.name === 'NotAllowedError' || err.name === 'SecurityError')) {
-        setStatus("Mic permission denied. Allow the microphone and try again. — إذن الميكروفون مرفوض، اسمح بالميكروفون وحاول تاني.");
-      } else {
-        setStatus("Couldn't access the microphone. — تعذّر الوصول للميكروفون.");
-      }
-    });
-  }
-
-  function stopRecording(){
-    if (mediaRecorder && mediaRecorder.state !== 'inactive') {
-      mediaRecorder.stop();
-    }
-    setRecordingUI(false);
-  }
-
-  recordBtn.addEventListener('click', function(){
-    if (recording) { stopRecording(); } else { startRecording(); }
-  });
-
-  playMineBtn.addEventListener('click', function(){
-    if (!recordedURL) return;
-    var a = new Audio(recordedURL);
-    setStatus("Playing your recording… — بيشتغل تسجيلك…");
-    a.onended = function(){ setStatus(""); };
-    a.play().catch(function(){ setStatus("Couldn't play your recording."); });
-  });
-
   window.addEventListener('beforeunload', function(){
-    stopMic();
-    if (recordedURL) URL.revokeObjectURL(recordedURL);
     if ('speechSynthesis' in window) window.speechSynthesis.cancel();
   });
 })();
