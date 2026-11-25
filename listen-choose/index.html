@@ -32,6 +32,7 @@ header{text-align:center;margin-bottom:12px}header h1{color:var(--gd);font-size:
   <div class="fb" id="fb">Listen, then tap the matching picture. — اسمع، وبعدين اضغط على الصورة المناسبة.</div>
   <div class="word" id="word"></div>
   <button id="next" class="btn sec hide">Next — التالي</button>
+  <button id="restart" class="btn sec">Restart — ابدأ من الأول</button>
 </div>
 
 <div class="card hide" id="done">
@@ -62,7 +63,7 @@ var LET=function(g){return '<span style="font-size:3.6rem;color:#1b5e20;font-fam
 var ALIF={say:"أَلِف",pic:LET("ا"),label:"ا"};
 var LETTERS=[ALIF,{pic:LET("ب"),label:"ب"},{pic:LET("د"),label:"د"}];
 var MODEL_AUDIO={}; // optional real recordings later, e.g. {"باب":"audio/bab.mp3"}
-var order,idx,score,answered,cur;
+var order,idx,score,answered,cur,missed;
 var $=function(i){return document.getElementById(i)};
 function shuffle(a){a=a.slice();for(var i=a.length-1;i>0;i--){var j=Math.floor(Math.random()*(i+1));var t=a[i];a[i]=a[j];a[j]=t}return a}
 function arVoice(){if(!window.speechSynthesis)return null;var v=speechSynthesis.getVoices();for(var i=0;i<v.length;i++){if(v[i].lang&&v[i].lang.toLowerCase().indexOf('ar')===0)return v[i]}return null}
@@ -74,9 +75,9 @@ function speak(text){
   if(v){u.voice=v;u.lang=v.lang}else{u.lang='ar-SA'}
   u.rate=0.7;speechSynthesis.speak(u);
 }
-function start(){order=shuffle(ITEMS.concat([ALIF]));idx=0;score=0;$('quiz').classList.remove('hide');$('done').classList.add('hide');round()}
+function start(){if(window.speechSynthesis)speechSynthesis.cancel();order=shuffle(ITEMS.concat([ALIF]));idx=0;score=0;$('quiz').classList.remove('hide');$('done').classList.add('hide');round()}
 function round(){
-  cur=order[idx];answered=false;
+  cur=order[idx];answered=false;missed=false;
   $('prog').textContent="Question "+(idx+1)+" of "+order.length+" — سؤال "+(idx+1)+" من "+order.length;
   $('fb').textContent="Listen, then tap the matching picture. — اسمع، وبعدين اضغط على الصورة المناسبة.";
   $('word').textContent="";$('next').classList.add('hide');
@@ -88,12 +89,12 @@ function round(){
 }
 function pick(it,b){
   if(answered)return;
-  if(it===cur){answered=true;score++;b.classList.add('ok');
+  if(it===cur){answered=true;if(!missed)score++;b.classList.add('ok');
     $('fb').textContent="Correct! — صح!";$('word').textContent=cur.label;
     Array.prototype.forEach.call($('choices').children,function(x){x.disabled=true});
     $('next').classList.remove('hide');
     $('next').textContent=(idx+1<order.length)?"Next — التالي":"Finish — خلصنا";
-  }else{b.classList.add('no');b.disabled=true;
+  }else{missed=true;b.classList.add('no');b.disabled=true;
     $('fb').textContent="Not this one. Listen again and try. — مش دي. اسمع تاني وجرّب.";}
 }
 $('play').onclick=function(){speak(cur.say)};
@@ -101,6 +102,7 @@ $('next').onclick=function(){idx++;if(idx<order.length){round();speak(cur.say)}e
   $('quiz').classList.add('hide');$('done').classList.remove('hide');
   $('score').textContent="Score: "+score+" / "+order.length+" — النتيجة: "+score+" / "+order.length}};
 $('again').onclick=start;
+$('restart').onclick=start;
 window.addEventListener('beforeunload',function(){if(window.speechSynthesis)speechSynthesis.cancel()});
 start();
 })();
