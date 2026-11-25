@@ -202,6 +202,8 @@
 
 <script>
 (function(){
+  var PAUSE_AFTER_EACH_ITEM_MS = 1500; // silence after the letter name and after each word
+  var WORD_SPEECH_RATE = 0.7;           // speech speed (1 = normal)
   "use strict";
 
   /* ------------------------------------------------------------------
@@ -214,8 +216,9 @@
   ------------------------------------------------------------------ */
   var MODEL_AUDIO_URL = null; // e.g. "audio/alif.mp3"
 
-  var MODEL_TEXT = "أَلِف. الولد. باب. سَمَا.";
+  var MODEL_ITEMS = ["أَلِف", "الولد", "باب", "سَمَا"];
 
+  var speechRun = 0;
   var listenBtn   = document.getElementById('listenBtn');
   var statusEl    = document.getElementById('status');
 
@@ -253,13 +256,28 @@
       return;
     }
     window.speechSynthesis.cancel();
-    var u = new SpeechSynthesisUtterance(MODEL_TEXT);
     var v = pickArabicVoice();
-    if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'ar-SA'; }
-    u.rate = 0.8;
-    u.onend = function(){ if(done) done(); };
-    u.onerror = function(){ if(done) done(); };
-    window.speechSynthesis.speak(u);
+    var runId = ++speechRun;
+    var idx = 0;
+    function finish(){ if (runId === speechRun && done) done(); }
+    function speakNext(){
+      if (runId !== speechRun) return;
+      if (idx >= MODEL_ITEMS.length) { finish(); return; }
+      var u = new SpeechSynthesisUtterance(MODEL_ITEMS[idx]);
+      if (v) { u.voice = v; u.lang = v.lang; } else { u.lang = 'ar-SA'; }
+      u.rate = WORD_SPEECH_RATE;
+      var advanced = false;
+      function next(){
+        if (advanced) return;
+        advanced = true;
+        idx++;
+        setTimeout(speakNext, PAUSE_AFTER_EACH_ITEM_MS);
+      }
+      u.onend = next;
+      u.onerror = function(){ if (runId === speechRun) next(); };
+      window.speechSynthesis.speak(u);
+    }
+    speakNext();
   }
 
   listenBtn.addEventListener('click', function(){
